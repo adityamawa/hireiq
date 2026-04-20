@@ -1,0 +1,4 @@
+google-generativeai
+supabase
+python-dotenv
+pypdf2
