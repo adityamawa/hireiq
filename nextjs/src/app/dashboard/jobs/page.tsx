@@ -20,11 +20,11 @@ export default async function JobsPage() {
     );
   }
 
-  // 2. Fetch jobs explicitly for this user
+  // 2. Fetch jobs explicitly for this user using the correct column name
   const { data: jobs, error } = await supabase
     .from('jobs')
     .select('*')
-    .eq('created_by', session.user.id) // Double-checking ownership
+    .eq('recruiter_id', session.user.id) // <--- FIXED: changed created_by to recruiter_id
     .order('created_at', { ascending: false });
 
   if (error) {

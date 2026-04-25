@@ -1,14 +1,12 @@
 "use client";
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,10 +19,12 @@ export default function Login() {
 
     if (error) {
       alert(error.message);
+      setLoading(false); // Stop loading if there's an error so they can try again
     } else {
-      router.push('/dashboard');
+      // THE FIX: Nuke the Next.js cache by forcing a true browser redirect.
+      // This guarantees the new user only sees their own data.
+      window.location.href = '/dashboard/jobs'; 
     }
-    setLoading(false);
   };
 
   return (

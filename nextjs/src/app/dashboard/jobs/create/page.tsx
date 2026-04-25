@@ -11,31 +11,39 @@ export default function CreateJobPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    
-    // Using the imported supabase client
-    const { error } = await supabase.from("jobs").insert([{
-      title: formData.get("title"),
-      description: formData.get("description"),
-      location: formData.get("location"),
-      salary_range: formData.get("salary"),
-      status: "active",
-    }]);
+  // 1. Fetch the user first
+  const { data: { user } } = await supabase.auth.getUser();
 
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
-      // Refreshing and navigating back to the jobs list
-      router.push("/dashboard/jobs");
-      router.refresh();
-    }
+  if (!user) {
+    alert("Please log in to post a job.");
     setLoading(false);
-  };
+    return;
+  }
 
+  const formData = new FormData(e.currentTarget);
+  
+  // 2. Add recruiter_id to the insert
+  const { error } = await supabase.from("jobs").insert([{
+    title: formData.get("title"),
+    description: formData.get("description"),
+    location: formData.get("location"),
+    salary_range: formData.get("salary"),
+    status: "active",
+    recruiter_id: user.id // <--- ADDED HERE
+  }]);
+
+  if (error) {
+    alert("Error: " + error.message);
+  } else {
+    router.push("/dashboard/jobs");
+    router.refresh();
+  }
+  setLoading(false);
+};
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <Link href="/dashboard/jobs" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-fit">

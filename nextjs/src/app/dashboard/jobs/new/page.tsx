@@ -50,7 +50,7 @@ export default function NewJobPage() {
           title, 
           description, 
           required_skills: skills,
-          created_by: user.id,
+          recruiter_id: user.id,
           min_experience_years: 0
         }
       ]);

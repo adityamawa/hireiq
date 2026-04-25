@@ -3,15 +3,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Briefcase, Users, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
 
 export default function DashboardNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   const handleSignOut = async () => {
+    // 1. Kill the active Supabase session
     await supabase.auth.signOut();
-    router.push('/');
+    
+    // 2. THE FIX: Nuke the Next.js client-side cache and hard-redirect
+    // This ensures the next person to log in sees a completely blank slate.
+    window.location.href = '/'; 
   };
 
   const navItems = [

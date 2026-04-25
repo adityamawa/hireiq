@@ -2,16 +2,35 @@ import { createServerSupabaseClient } from '@/lib/supabaseServer';
 import { Briefcase, Users, Star, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+// NEVER CACHE THIS PAGE
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardOverview() {
   const supabase = createServerSupabaseClient();
-
-// 1. Fetch Stats
-  const { count: jobsCount } = await supabase.from('jobs').select('*', { count: 'exact', head: true });
   
-  // Use a fallback empty array if data is null
-  const { data: applicationsData } = await supabase.from('applications').select('overall_score');
+  // 1. Grab the user session to ensure we only fetch their data
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    return (
+      <div className="p-8 text-center text-slate-400 mt-20">
+        <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
+        <p>Please sign in again to view your HireIQ dashboard.</p>
+      </div>
+    );
+  }
+
+  // 2. Fetch Stats STRICTLY for this recruiter
+  const { count: jobsCount } = await supabase
+    .from('jobs')
+    .select('*', { count: 'exact', head: true })
+    .eq('recruiter_id', session.user.id); // <--- The Multi-Tenant Lock
+  
+  // RLS automatically filters these applications because we check the session above
+  const { data: applicationsData } = await supabase
+    .from('applications')
+    .select('overall_score');
+    
   const applications = applicationsData || []; 
   
   const totalApps = applications.length;
@@ -20,6 +39,7 @@ export default async function DashboardOverview() {
   const avgScore = totalApps > 0 
     ? Math.round(applications.reduce((acc, curr) => acc + (curr.overall_score || 0), 0) / totalApps) 
     : 0;
+
   return (
     <div className="space-y-8">
       <div>
