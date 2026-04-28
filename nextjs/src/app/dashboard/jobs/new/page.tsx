@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Save, Plus, X, Loader2 } from 'lucide-react';
+import { Save, Plus, X, Loader2, Wand2 } from 'lucide-react';
 
 export default function NewJobPage() {
   const [mounted, setMounted] = useState(false);
@@ -12,6 +12,11 @@ export default function NewJobPage() {
   const [skillInput, setSkillInput] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // New AI States
+  const [rawJD, setRawJD] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  
   const router = useRouter();
 
   // Prevents hydration errors by waiting for the component to mount
@@ -30,6 +35,40 @@ export default function NewJobPage() {
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter(s => s !== skillToRemove));
+  };
+
+  // --- AI AUTOFILL LOGIC ---
+  const handleAIAutofill = async () => {
+    if (!rawJD.trim()) {
+      alert("Please paste a job description first!");
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const response = await fetch("http://localhost:8000/api/extract-jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: rawJD }),
+      });
+
+      if (!response.ok) throw new Error("Backend is offline");
+
+      const data = await response.json();
+
+      setTitle(data.title || '');
+      setDescription(data.description || '');
+      // Ensure skills is set as an array and filter out any empties
+      if (data.skills && Array.isArray(data.skills)) {
+        setSkills(data.skills.filter((s: string) => s.trim() !== ''));
+      }
+
+    } catch (error) {
+      console.error("Extraction error:", error);
+      alert("AI extraction failed. Make sure your Python server is running on localhost:8000");
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,6 +120,33 @@ export default function NewJobPage() {
         <h1 className="text-3xl font-bold text-white">Create New Job</h1>
         <p className="text-slate-400 mt-2">Specify the requirements for your HireIQ screening.</p>
       </div>
+
+      {/* --- AI AUTOFILL SECTION --- */}
+      <div className="mb-6 p-6 bg-slate-800/40 border border-blue-500/30 rounded-2xl shadow-inner">
+        <div className="flex items-center gap-2 mb-3">
+          <Wand2 className="text-blue-400" size={20} />
+          <h2 className="text-lg font-semibold text-blue-300">AI Job Architect</h2>
+        </div>
+        <p className="text-sm text-slate-400 mb-3">
+          Paste a messy JD from LinkedIn or a document. AI will instantly structure it for you.
+        </p>
+        <textarea
+          className="w-full p-3 bg-slate-950/50 border border-slate-700 rounded-lg text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 mb-4 h-24 placeholder:text-slate-600"
+          placeholder="Paste raw job description here..."
+          value={rawJD}
+          onChange={(e) => setRawJD(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={handleAIAutofill}
+          disabled={isExtracting}
+          className="w-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/50 py-2.5 rounded-lg font-medium text-blue-300 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+        >
+          {isExtracting ? <Loader2 className="animate-spin" size={18} /> : <Wand2 size={18} />}
+          {isExtracting ? 'AI is processing...' : 'Magic Autofill Form'}
+        </button>
+      </div>
+      {/* --- END AI SECTION --- */}
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl">
         {/* Job Title */}
